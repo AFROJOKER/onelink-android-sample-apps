@@ -28,7 +28,7 @@ class AppsflyerBasicApp: Application() {
         super.onCreate()
         //Getting the SDK instance, which helps you access the methods in the af library.
         val appsFlyer: AppsFlyerLib = AppsFlyerLib.getInstance()
-
+        appsFlyer.setAppInviteOneLink("H5hv")
 
         val conversionListener:AppsFlyerConversionListener=object : AppsFlyerConversionListener{
             override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
