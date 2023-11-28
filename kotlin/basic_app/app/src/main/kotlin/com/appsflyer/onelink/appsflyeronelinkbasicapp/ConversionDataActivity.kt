@@ -20,7 +20,7 @@ class ConversionDataActivity : AppCompatActivity() {
         conversionDataTextView.setText(conversionDataString)
 
     }
-
+// A function that accepts a Map variable and converts it to a String variable
     private fun mapToSortedString(map: Map<String, Any>?): String {
         var result = ""
 
