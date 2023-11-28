@@ -23,6 +23,12 @@ class AppsflyerBasicApp: Application() {
 
     var conversionData: Map<String, Any>? = null
 
+    // This boolean flag signals between the UDL and GCD callbacks that this deep_link was
+    // already processed, and the callback functionality for deep linking can be skipped.
+    // When GCD or UDL finds this flag true it MUST set it to false before skipping.
+
+    var deferred_deep_link_processed_flag = false
+
     override fun onCreate(){
         super.onCreate()
         //Getting the SDK instance, which helps you access the methods in the af library.
@@ -129,6 +135,15 @@ class AppsflyerBasicApp: Application() {
                 // An example for using is_deferred
                 if (deepLinkObj.isDeferred == true) {
                     Log.d(LOG_TAG, "This is a deferred deep link")
+
+                    if (deferred_deep_link_processed_flag == true) {
+                        Log.d(
+                            LOG_TAG,
+                            "Deferred deep link was already processed by GCD. This iteration can be skipped."
+                        )
+                        deferred_deep_link_processed_flag = false
+                        return
+                    }
                 } else {
                     Log.d(LOG_TAG, "This is a direct deep link")
                 }
