@@ -22,7 +22,7 @@ import com.google.gson.Gson
 import org.json.JSONException
 import org.json.JSONObject
 
-abstract class FruitActivity: AppCompatActivity() {
+abstract class FruitActivity : AppCompatActivity() {
 
     var dlAttrs: TextView? = null
     var dlTitleText: TextView? = null
@@ -44,19 +44,21 @@ abstract class FruitActivity: AppCompatActivity() {
         showFruitAmount()
         showDlData()
     }
-    protected open fun setStaticAttributes(){
+
+    protected open fun setStaticAttributes() {
         try {
             val dlParamsId: String = fruitName + "_deeplinkparams"
             val dlTitleId: String = fruitName + "_deeplinktitle"
             val conversionDataBtnId: String = fruitName + "_getconversiondata"
             val fruitAmount: String = fruitName + "_fruitAmount"
-            this.dlAttrs = findViewById(resources.getIdentifier(dlParamsId,"id",packageName))
+            this.dlAttrs = findViewById(resources.getIdentifier(dlParamsId, "id", packageName))
             this.dlTitleText = findViewById(resources.getIdentifier(dlTitleId, "id", packageName))
             this.fruitAmountStr = "000"
             this.fruitAmount = findViewById(resources.getIdentifier(fruitAmount, "id", packageName))
-            this.goToConversionDataText=findViewById(resources.getIdentifier(conversionDataBtnId,"id",packageName))
-        }catch (e : Exception){
-            Log.d(LOG_TAG,"Error getting TextViews for " + fruitName + " Activity")
+            this.goToConversionDataText =
+                findViewById(resources.getIdentifier(conversionDataBtnId, "id", packageName))
+        } catch (e: Exception) {
+            Log.d(LOG_TAG, "Error getting TextViews for " + fruitName + " Activity")
         }
         //Go To Conversion Data button on click listener
         goToConversionDataText?.setOnClickListener {
@@ -65,6 +67,8 @@ abstract class FruitActivity: AppCompatActivity() {
         }
 
     }
+
+    //fun showFruitAmount displays the value fruitAmount and presents it in the successor activity
     protected open fun showFruitAmount() {
         val json = Gson()
         val dlObject = json.fromJson(
@@ -76,9 +80,11 @@ abstract class FruitActivity: AppCompatActivity() {
             val dlData = dlObject.clickEvent
             fruitAmount = when {
                 dlData.has("deep_link_value") && dlData.has("deep_link_sub1") ->
-                    dlObject.getStringValue("deep_link_sub1")?:""
+                    dlObject.getStringValue("deep_link_sub1") ?: ""
+                //In case there is no "deep_link_sub1" we will take the fruitAmount from "fruit_amount"
                 dlData.has("fruit_name") && dlData.has("fruit_amount") ->
-                    dlObject.getStringValue("fruit_amount")?:""
+                    dlObject.getStringValue("fruit_amount") ?: ""
+
                 else -> {
                     Log.d(LOG_TAG, "deep_link_sub1/fruit amount not found")
                     return
@@ -92,29 +98,31 @@ abstract class FruitActivity: AppCompatActivity() {
             }
         }
     }
-    fun showDlData() {
-            val intent = intent
-            val json = Gson()
-            val dlData = json.fromJson(
-                intent.getStringExtra(DL_ATTRS),
-                DeepLink::class.java
-            )
-            if (dlData != null) {
-                val jsonObject: JSONObject
-                try {
-                    jsonObject = JSONObject(dlData.toString())
-                    dlAttrs?.movementMethod = ScrollingMovementMethod()
-                    dlAttrs?.text = jsonObject.toString(4)
-                        .replace("\\\\".toRegex(), "") // 4 is num of spaces for indent
-                    dlTitleText?.text = "Deep Link happened. Parameters:"
 
-                } catch (e: JSONException) {
-                    e.printStackTrace()
-                }
-            } else {
-                dlTitleText?.text = "No Deep Linking Happened"
+    fun showDlData() {
+        val intent = intent
+        val json = Gson()
+        val dlData = json.fromJson(
+            intent.getStringExtra(DL_ATTRS),
+            DeepLink::class.java
+        )
+        if (dlData != null) {
+            val jsonObject: JSONObject
+            try {
+                jsonObject = JSONObject(dlData.toString())
+                dlAttrs?.movementMethod = ScrollingMovementMethod()
+                dlAttrs?.text = jsonObject.toString(4)
+                    .replace("\\\\".toRegex(), "") // 4 is num of spaces for indent
+                dlTitleText?.text = "Deep Link happened. Parameters:"
+
+            } catch (e: JSONException) {
+                e.printStackTrace()
             }
+        } else {
+            dlTitleText?.text = "No Deep Linking Happened"
         }
+    }
+
     private fun copyShareInviteLink() {
         val currentCampaign = "user_invite"
         val currentChannel = "mobile_share"
@@ -136,11 +144,15 @@ abstract class FruitActivity: AppCompatActivity() {
                     val clip = ClipData.newPlainText("Share invite link", s)
                     clipboard.setPrimaryClip(clip)
 
-                    val toast = Toast.makeText(applicationContext, "Link copied to clipboard", Toast.LENGTH_SHORT)
+                    val toast = Toast.makeText(
+                        applicationContext,
+                        "Link copied to clipboard",
+                        Toast.LENGTH_SHORT
+                    )
                     toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 20)
                     toast.show()
                 }
-
+                //Declaring a Map with two values
                 val logInviteMap = hashMapOf(
                     "referrerId" to currentReferrerId,
                     "campaign" to currentCampaign
