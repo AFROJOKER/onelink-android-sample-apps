@@ -27,13 +27,85 @@ class AppsflyerBasicApp: Application() {
         super.onCreate()
         //Getting the SDK instance, which helps you access the methods in the af library.
         val appsFlyer: AppsFlyerLib = AppsFlyerLib.getInstance()
+
+        //Setting OneLink template ID
         appsFlyer.setAppInviteOneLink("H5hv")
 
+        //Deep Linking Handling
+        appsFlyer.subscribeForDeepLink(object : DeepLinkListener {
+            override fun onDeepLinking(deepLinkResult: DeepLinkResult) {
+                when (deepLinkResult.status) {
+                    DeepLinkResult.Status.FOUND -> {
+                        Log.d(
+                            LOG_TAG,"Deep link found"
+                        )
+                    }
+                    DeepLinkResult.Status.NOT_FOUND -> {
+                        Log.d(
+                            LOG_TAG,"Deep link not found"
+                        )
+                        return
+                    }
+                    else -> {
+                        // dlStatus == DeepLinkResult.Status.ERROR
+                        val dlError = deepLinkResult.error
+                        Log.d(
+                            LOG_TAG,"There was an error getting Deep Link data: $dlError"
+                        )
+                        return
+                    }
+                }
+                val deepLinkObj: DeepLink = deepLinkResult.deepLink
+                try {
+                    Log.d(
+                        LOG_TAG,"The DeepLink data is: $deepLinkObj"
+                    )
+                } catch (e: Exception) {
+                    Log.d(
+                        LOG_TAG,"DeepLink data came back null"
+                    )
+                    return
+                }
+
+                // An example for using is_deferred
+                if (deepLinkObj.isDeferred == true) {
+                    Log.d(LOG_TAG, "This is a deferred deep link")
+                } else {
+                    Log.d(LOG_TAG, "This is a direct deep link")
+                }
+                Log.d(LOG_TAG, deepLinkObj.toString())
+                try {
+                    var fruitName = deepLinkObj.deepLinkValue
+
+                    if(fruitName == null || fruitName == ""){
+                        Log.d(LOG_TAG, "deep_link_value returned null")
+                        fruitName = deepLinkObj.getStringValue("fruit_name")
+                        if(fruitName == null || fruitName == "") {
+                            Log.d(LOG_TAG,"Fruit name not found!")
+                            return
+                        }
+                        Log.d(LOG_TAG, "fruit_name is $fruitName. This is an old link")
+
+                    }
+
+                    Log.d(LOG_TAG, "The DeepLink will route to: $fruitName")
+
+                    goToFruit(fruitName, deepLinkObj)
+                } catch (e:Exception) {
+                    Log.d(LOG_TAG, "There's been an error: $e")
+                    return
+                }
+            }
+        })
+
+
+        //Conversion Data Handling
         val conversionListener:AppsFlyerConversionListener=object : AppsFlyerConversionListener{
             override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
                     data?.let {
                         val status: Any? = data["af_status"]
                         Log.d(LOG_TAG, "::$status");
+                        Log.d(LOG_TAG,"Conversion Data: " + data.toString())
                         if(status.toString() == "Non-organic"){
                             if(data["is_first_launch"] ==true){
                                 Log.d(LOG_TAG,"First time launching")
@@ -41,6 +113,9 @@ class AppsflyerBasicApp: Application() {
                             if(data.containsKey("fruit_name")){
                                 data.put("deep_link_value", data["fruit_name"] as String)
                             }
+                            val string:String=data.get("deep_link_value").toString()
+                            val deepLink:DeepLink?=mapToDeepLinkObject(data)
+                            goToFruit(string,deepLink)
                     }
 
 
@@ -91,58 +166,8 @@ class AppsflyerBasicApp: Application() {
             }
         })
 
-        appsFlyer.subscribeForDeepLink(object : DeepLinkListener {
-            override fun onDeepLinking(deepLinkResult: DeepLinkResult) {
-                when (deepLinkResult.status) {
-                    DeepLinkResult.Status.FOUND -> {
-                        Log.d(
-                            LOG_TAG,"Deep link found"
-                        )
-                    }
-                    DeepLinkResult.Status.NOT_FOUND -> {
-                        Log.d(
-                            LOG_TAG,"Deep link not found"
-                        )
-                        return
-                    }
-                    else -> {
-                        // dlStatus == DeepLinkResult.Status.ERROR
-                        val dlError = deepLinkResult.error
-                        Log.d(
-                            LOG_TAG,"There was an error getting Deep Link data: $dlError"
-                        )
-                        return
-                    }
-                }
-                val deepLinkObj: DeepLink = deepLinkResult.deepLink
-                try {
-                    Log.d(
-                        LOG_TAG,"The DeepLink data is: $deepLinkObj"
-                    )
-                } catch (e: Exception) {
-                    Log.d(
-                        LOG_TAG,"DeepLink data came back null"
-                    )
-                    return
-                }
 
-                // An example for using is_deferred
-                if (deepLinkObj.isDeferred == true) {
-                    Log.d(LOG_TAG, "This is a deferred deep link")
-                } else {
-                    Log.d(LOG_TAG, "This is a direct deep link")
-                }
 
-                try {
-                    val fruitName = deepLinkObj.deepLinkValue
-                    Log.d(LOG_TAG, "The DeepLink will route to: $fruitName")
-                    goToFruit(fruitName, deepLinkObj)
-                } catch (e:Exception) {
-                    Log.d(LOG_TAG, "There's been an error: $e")
-                    return
-                }
-            }
-        })
 
 
 
