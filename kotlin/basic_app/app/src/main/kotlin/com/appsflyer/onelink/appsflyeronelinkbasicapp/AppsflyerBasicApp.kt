@@ -33,70 +33,11 @@ class AppsflyerBasicApp: Application() {
         super.onCreate()
         //Getting the SDK instance, which helps you access the methods in the af library.
         val appsFlyer: AppsFlyerLib = AppsFlyerLib.getInstance()
+
+        //Setting OneLink template ID
         appsFlyer.setAppInviteOneLink("H5hv")
 
-        val conversionListener:AppsFlyerConversionListener=object : AppsFlyerConversionListener{
-            override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
-                    data?.let {
-                        val status: Any? = data["af_status"]
-                        Log.d(LOG_TAG, "::$status");
-                        if(status.toString() == "Non-organic"){
-                            if(data["is_first_launch"] ==true){
-                                Log.d(LOG_TAG,"First time launching")
-                            }
-                            if(data.containsKey("fruit_name")){
-                                data.put("deep_link_value", data["fruit_name"] as String)
-                            }
-                    }
-
-
-                    }
-                        ?:run{
-
-                    Log.d(LOG_TAG, "Conversion Failed: " );
-
-                }
-                conversionData=data;
-            }
-
-            override fun onConversionDataFail(errorMessage: String?) {
-                // Your implementation for onConversionDataFail
-                if (errorMessage != null) {
-                    Log.d(LOG_TAG,errorMessage)
-                };
-
-            }
-
-            override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
-                Log.d(LOG_TAG, "onAppOpenAttribution: This is fake call.");
-            }
-
-            override fun onAttributionFailure(errorMessage: String?) {
-                Log.d(LOG_TAG, "error onAttributionFailure : " + errorMessage);
-            }
-
-        }
-        //Initializing AppsFlyer SDK
-        appsFlyer.init(AppsFlyerConstants.afDevKey,conversionListener,this)
-
-
-        //Starts the SDK and logs a message if the SDK started or not
-        appsFlyer.start(this, AppsFlyerConstants.afDevKey, object :
-            AppsFlyerRequestListener {
-
-            //Success Message
-            override fun onSuccess() {
-                Log.d(LOG_TAG, "Launch sent successfully")
-            }
-
-            //Error Message
-            override fun onError(errorCode: Int, errorDesc: String) {
-                Log.d(LOG_TAG, "Launch failed to be sent:\n" +
-                        "Error code: " + errorCode + "\n"
-                        + "Error description: " + errorDesc)
-            }
-        })
-
+        //Deep Linking Handling
         appsFlyer.subscribeForDeepLink(object : DeepLinkListener {
             override fun onDeepLinking(deepLinkResult: DeepLinkResult) {
                 when (deepLinkResult.status) {
@@ -147,10 +88,23 @@ class AppsflyerBasicApp: Application() {
                 } else {
                     Log.d(LOG_TAG, "This is a direct deep link")
                 }
-
+                Log.d(LOG_TAG, deepLinkObj.toString())
                 try {
-                    val fruitName = deepLinkObj.deepLinkValue
+                    var fruitName = deepLinkObj.deepLinkValue
+
+                    if(fruitName == null || fruitName == ""){
+                        Log.d(LOG_TAG, "deep_link_value returned null")
+                        fruitName = deepLinkObj.getStringValue("fruit_name")
+                        if(fruitName == null || fruitName == "") {
+                            Log.d(LOG_TAG,"Fruit name not found!")
+                            return
+                        }
+                        Log.d(LOG_TAG, "fruit_name is $fruitName. This is an old link")
+
+                    }
+
                     Log.d(LOG_TAG, "The DeepLink will route to: $fruitName")
+
                     goToFruit(fruitName, deepLinkObj)
                 } catch (e:Exception) {
                     Log.d(LOG_TAG, "There's been an error: $e")
@@ -158,6 +112,77 @@ class AppsflyerBasicApp: Application() {
                 }
             }
         })
+
+
+        //Conversion Data Handling
+        val conversionListener:AppsFlyerConversionListener=object : AppsFlyerConversionListener{
+            override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
+                    data?.let {
+                        val status: Any? = data["af_status"]
+                        Log.d(LOG_TAG, "::$status");
+                        Log.d(LOG_TAG,"Conversion Data: " + data.toString())
+                        if(status.toString() == "Non-organic"){
+                            if(data["is_first_launch"] ==true){
+                                Log.d(LOG_TAG,"First time launching")
+                            }
+                            if(data.containsKey("fruit_name")){
+                                data.put("deep_link_value", data["fruit_name"] as String)
+                            }
+                            val string:String=data.get("deep_link_value").toString()
+                            val deepLink:DeepLink?=mapToDeepLinkObject(data)
+                            goToFruit(string,deepLink)
+                    }
+
+
+                    }
+                        ?:run{
+
+                    Log.d(LOG_TAG, "Conversion Failed: " );
+
+                }
+                conversionData=data;
+            }
+
+            override fun onConversionDataFail(errorMessage: String?) {
+                // Your implementation for onConversionDataFail
+                if (errorMessage != null) {
+                    Log.d(LOG_TAG,errorMessage)
+                };
+
+            }
+
+            override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
+                Log.d(LOG_TAG, "onAppOpenAttribution: This is fake call.");
+            }
+
+            override fun onAttributionFailure(errorMessage: String?) {
+                Log.d(LOG_TAG, "error onAttributionFailure : " + errorMessage);
+            }
+
+        }
+        //Initializing AppsFlyer SDK
+        appsFlyer.init(AppsFlyerConstants.afDevKey,conversionListener,this)
+
+
+        //Starts the SDK and logs a message if the SDK started or not
+        appsFlyer.start(this, AppsFlyerConstants.afDevKey, object :
+            AppsFlyerRequestListener {
+
+            //Success Message
+            override fun onSuccess() {
+                Log.d(LOG_TAG, "Launch sent successfully")
+            }
+
+            //Error Message
+            override fun onError(errorCode: Int, errorDesc: String) {
+                Log.d(LOG_TAG, "Launch failed to be sent:\n" +
+                        "Error code: " + errorCode + "\n"
+                        + "Error description: " + errorDesc)
+            }
+        })
+
+
+
 
 
 
