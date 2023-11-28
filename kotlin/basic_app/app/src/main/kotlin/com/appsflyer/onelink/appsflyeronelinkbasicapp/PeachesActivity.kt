@@ -1,6 +1,5 @@
 package com.appsflyer.onelink.appsflyeronelinkbasicapp
 
-import android.os.Bundle
 
 class PeachesActivity : FruitActivity() {
     override val fruitName: String = "peaches"

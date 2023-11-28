@@ -3,7 +3,6 @@ package com.appsflyer.onelink.appsflyeronelinkbasicapp
 import android.app.Application
 import android.content.Intent
 import android.util.Log
-import androidx.compose.ui.text.toUpperCase
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
 import com.appsflyer.attribution.AppsFlyerRequestListener

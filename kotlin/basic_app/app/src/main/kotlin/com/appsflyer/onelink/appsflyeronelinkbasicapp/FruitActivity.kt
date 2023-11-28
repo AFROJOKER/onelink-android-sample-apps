@@ -21,7 +21,6 @@ import com.appsflyer.share.ShareInviteHelper
 import com.google.gson.Gson
 import org.json.JSONException
 import org.json.JSONObject
-import kotlin.math.log
 
 abstract class FruitActivity: AppCompatActivity() {
 
