@@ -13,6 +13,7 @@ class ConversionDataActivity : AppCompatActivity() {
         displayConversionData(conversionData)
     }
 
+    //A function that receives a map containing the conversion data and displays it
     private fun displayConversionData(conversionData: Map<String, Any>?) {
         val conversionDataString = mapToSortedString(conversionData)
         val conversionDataTextView = findViewById<TextView>(R.id.conversionDataTextView)
