@@ -23,7 +23,13 @@ class AppsflyerBasicApp: Application() {
 
     var conversionData: Map<String, Any>? = null
 
-    override fun onCreate(){
+    // This boolean flag signals between the UDL and GCD callbacks that this deep_link was
+    // already processed, and the callback functionality for deep linking can be skipped.
+    // When GCD or UDL finds this flag true it MUST set it to false before skipping.
+
+    var deferred_deep_link_processed_flag = false
+
+    override fun onCreate() {
         super.onCreate()
         //Getting the SDK instance, which helps you access the methods in the af library.
         val appsFlyer: AppsFlyerLib = AppsFlyerLib.getInstance()
@@ -37,20 +43,22 @@ class AppsflyerBasicApp: Application() {
                 when (deepLinkResult.status) {
                     DeepLinkResult.Status.FOUND -> {
                         Log.d(
-                            LOG_TAG,"Deep link found"
+                            LOG_TAG, "Deep link found"
                         )
                     }
+
                     DeepLinkResult.Status.NOT_FOUND -> {
                         Log.d(
-                            LOG_TAG,"Deep link not found"
+                            LOG_TAG, "Deep link not found"
                         )
                         return
                     }
+
                     else -> {
                         // dlStatus == DeepLinkResult.Status.ERROR
                         val dlError = deepLinkResult.error
                         Log.d(
-                            LOG_TAG,"There was an error getting Deep Link data: $dlError"
+                            LOG_TAG, "There was an error getting Deep Link data: $dlError"
                         )
                         return
                     }
@@ -58,11 +66,11 @@ class AppsflyerBasicApp: Application() {
                 val deepLinkObj: DeepLink = deepLinkResult.deepLink
                 try {
                     Log.d(
-                        LOG_TAG,"The DeepLink data is: $deepLinkObj"
+                        LOG_TAG, "The DeepLink data is: $deepLinkObj"
                     )
                 } catch (e: Exception) {
                     Log.d(
-                        LOG_TAG,"DeepLink data came back null"
+                        LOG_TAG, "DeepLink data came back null"
                     )
                     return
                 }
@@ -70,6 +78,15 @@ class AppsflyerBasicApp: Application() {
                 // An example for using is_deferred
                 if (deepLinkObj.isDeferred == true) {
                     Log.d(LOG_TAG, "This is a deferred deep link")
+
+                    if (deferred_deep_link_processed_flag == true) {
+                        Log.d(
+                            LOG_TAG,
+                            "Deferred deep link was already processed by GCD. This iteration can be skipped."
+                        )
+                        deferred_deep_link_processed_flag = false
+                        return
+                    }
                 } else {
                     Log.d(LOG_TAG, "This is a direct deep link")
                 }
@@ -77,11 +94,11 @@ class AppsflyerBasicApp: Application() {
                 try {
                     var fruitName = deepLinkObj.deepLinkValue
 
-                    if(fruitName == null || fruitName == ""){
+                    if (fruitName == null || fruitName == "") {
                         Log.d(LOG_TAG, "deep_link_value returned null")
                         fruitName = deepLinkObj.getStringValue("fruit_name")
-                        if(fruitName == null || fruitName == "") {
-                            Log.d(LOG_TAG,"Fruit name not found!")
+                        if (fruitName == null || fruitName == "") {
+                            Log.d(LOG_TAG, "could not find Fruit name!")
                             return
                         }
                         Log.d(LOG_TAG, "fruit_name is $fruitName. This is an old link")
@@ -90,8 +107,12 @@ class AppsflyerBasicApp: Application() {
 
                     Log.d(LOG_TAG, "The DeepLink will route to: $fruitName")
 
+                    // This marks to GCD that UDL already processed this deep link.
+                    // It is marked to both DL and DDL, but GCD is relevant only for DDL
+                    deferred_deep_link_processed_flag = true
+
                     goToFruit(fruitName, deepLinkObj)
-                } catch (e:Exception) {
+                } catch (e: Exception) {
                     Log.d(LOG_TAG, "There's been an error: $e")
                     return
                 }
@@ -100,33 +121,47 @@ class AppsflyerBasicApp: Application() {
 
 
         //Conversion Data Handling
-        val conversionListener:AppsFlyerConversionListener=object : AppsFlyerConversionListener{
+        val conversionListener: AppsFlyerConversionListener = object : AppsFlyerConversionListener {
             override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
-                    data?.let {
-                        val status: Any? = data["af_status"]
-                        Log.d(LOG_TAG, "::$status");
-                        Log.d(LOG_TAG,"Conversion Data: " + data.toString())
-                        if(status.toString() == "Non-organic"){
-                            if(data["is_first_launch"] ==true){
-                                Log.d(LOG_TAG,"First time launching")
+                data?.let {
+                    val status: Any? = data["af_status"]
+                    Log.d(LOG_TAG, "::$status");
+                    Log.d(LOG_TAG, "Conversion Data: " + data.toString())
+                    if (status.toString() == "Non-organic") {
+                        if (data["is_first_launch"] == true) {
+                            Log.d(LOG_TAG, "First time launching")
+                            //Deferred deep link in case of a legacy link
+                            if (deferred_deep_link_processed_flag == true) {
+                                Log.d(LOG_TAG, "Deferred deep link was already processed by UDL. The DDL processing in GCD can be skipped.")
+                                deferred_deep_link_processed_flag = false
+                            } else {
+                                deferred_deep_link_processed_flag = true
+
+                                if (data.containsKey("fruit_name")) {
+                                    data.put("deep_link_value", data["fruit_name"] as String)
+                                }
+                                val string: String = data.get("deep_link_value").toString()
+                                val deepLink: DeepLink? = mapToDeepLinkObject(data)
+                                goToFruit(string, deepLink)
                             }
-                            if(data.containsKey("fruit_name")){
-                                data.put("deep_link_value", data["fruit_name"] as String)
-                            }
-                            val string:String=data.get("deep_link_value").toString()
-                            val deepLink:DeepLink?=mapToDeepLinkObject(data)
-                            goToFruit(string,deepLink)
+                        } else {
+                            Log.d(LOG_TAG, "Conversion: Not First Launch")
+                        }
+                    } else {
+                        Log.d(LOG_TAG, "Conversion: This is an organic install.")
                     }
+                        ?: run {
 
+                            Log.d(LOG_TAG, "Conversion Failed: ");
 
-                    }
-                        ?:run{
-
-                    Log.d(LOG_TAG, "Conversion Failed: " );
-
+                        }
+                    conversionData = data;
                 }
-                conversionData=data;
             }
+
+
+
+
 
             override fun onConversionDataFail(errorMessage: String?) {
                 // Your implementation for onConversionDataFail
